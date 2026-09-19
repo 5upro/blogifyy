@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'https://blogify-backend.surajitsen.live/api/';
+const API_BASE_URL = 'https://blogifyy-hugk.onrender.com/api/';
 //const API_BASE_URL = 'http://localhost:3000/api/'; //for dev
 
 const api = axios.create({
