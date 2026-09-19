@@ -1,0 +1,54 @@
+Blogify Security / Vulnerability Disclosure Program
+
+Hello Security Researchers,
+
+Thank you for taking the time to test and report vulnerabilities for Blogify.
+
+If you discover any security vulnerabilities or bugs, please report them responsibly by sending an email to:
+
+security[at]surajitsen.live
+
+
+ In-Scope Assets
+
+blogify.surajitsen.live
+
+---
+
+Vulnerability Categories
+
+Since our platform is currently in development, we are only accepting valid vulnerabilities with Medium to High severity at this time. Examples include:
+
+* Authentication / OTP bypass
+* Malicious file upload
+* Non-blind SSRF
+* Reflected or DOM-based XSS
+* Account takeover
+* Any other vulnerabilities that could significantly impact security
+
+Additional targets and vulnerability categories may be added in the future.
+
+---
+
+### Hall of Fame Criteria
+
+Researchers who submit valid reports may be listed in our Hall of Fame.
+Please include the following details in your report:
+
+* Your preferred name or handle
+* Email address
+* LinkedIn profile (optional)
+
+---
+
+Rules
+
+* Please perform testing responsibly.
+* Do **not** perform any kind of **DDoS or service disruption attacks**.
+* Do not attempt to access or modify other users' data without authorization.
+
+---
+
+Thank you for helping keep **Blogify** secure.
+
+– Blogify Security Team
