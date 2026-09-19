@@ -112,7 +112,7 @@ const Login = ({ onToggle, onForgotPassword }) => {
 
           <div className="flex justify-center pt-2">
             <ReCAPTCHA
-              sitekey="73e7e1d4-5212-4b9f-bd09-39b64b37f32c"
+              sitekey="6LdTasQtAAAAAFoRIksr0fnQWMc-isa5sDuF34j9"
               onChange={setRecaptchaToken}
               theme="dark"
             />
