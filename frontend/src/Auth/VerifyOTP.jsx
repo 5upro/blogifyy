@@ -26,7 +26,7 @@ const VerifyOTP = ({ email, onVerified }) => {
       }
 
       setVerified(true);
-      if (onVerified) setTimeout(() => onVerified(), 1500);
+      if (onVerified) setTimeout(() => onVerified(response.data.user), 1500);
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'OTP verification failed');
     } finally {

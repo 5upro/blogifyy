@@ -1,7 +1,16 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { authAPI } from '../api';
+import { authAPI, premiumAPI } from '../api';
+import { FREE_BLOG_LIMIT } from '../premium/plans';
 
 const AuthContext = createContext();
+
+const FREE_ENTITLEMENTS = {
+  blogLimit: FREE_BLOG_LIMIT,
+  featuredImage: false,
+  privatePosts: false,
+  customTheme: false,
+  premiumBadge: false
+};
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -14,6 +23,13 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [subscription, setSubscription] = useState(null);
+
+  const isPremium = user?.plan === 'pro';
+  const isProSubscriber = Boolean(
+    user?.isProSubscriber ?? (user?.plan === 'pro' && user?.premiumStatus === 'active')
+  );
+  const entitlements = user?.entitlements || FREE_ENTITLEMENTS;
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -28,7 +44,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authAPI.getMe();
       setUser(response.data.user);
-    } catch (error) {
+    } catch {
       localStorage.removeItem('token');
     }
     setLoading(false);
@@ -41,9 +57,13 @@ export const AuthProvider = ({ children }) => {
       setUser(response.data.user);
       return { success: true };
     } catch (error) {
+      const data = error.response?.data || {};
       return { 
         success: false, 
-        message: error.response?.data?.message || 'Login failed' 
+        message: data.message || 'Login failed',
+        requiresOtp: Boolean(data.requiresOtp),
+        otpSent: Boolean(data.otpSent),
+        email: data.email || null
       };
     }
   };
@@ -67,10 +87,35 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
+    setSubscription(null);
   };
 
   const updateCurrentUser = (userData) => {
     setUser(userData);
+  };
+
+  const refreshSubscription = async () => {
+    try {
+      const response = await premiumAPI.getSubscription();
+      setSubscription(response.data);
+      if (response.data?.subscription) {
+        setUser((prev) =>
+          prev
+            ? {
+                ...prev,
+                plan: response.data.subscription.plan,
+                premiumStatus: response.data.subscription.status,
+                premiumExpiresAt: response.data.subscription.expiresAt,
+                accent: response.data.subscription.accent,
+                entitlements: response.data.subscription.entitlements
+              }
+            : prev
+        );
+      }
+      return response.data;
+    } catch {
+      return null;
+    }
   };
 
   const value = {
@@ -79,7 +124,12 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateCurrentUser,
-    loading
+    loading,
+    isPremium,
+    isProSubscriber,
+    entitlements,
+    subscription,
+    refreshSubscription
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -1,7 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { blogAPI, uploadAPI } from '../api';
-import { Type, Hash, Send, CheckCircle, Upload, X } from 'lucide-react';
+import { useAuth } from '../Auth/AuthContext';
+import { Type, Hash, Send, CheckCircle, Upload, X, Lock, Crown } from 'lucide-react';
 import EasyMDE from 'easymde';
+import UpgradeModal from './Premium/UpgradeModal';
 import 'easymde/dist/easymde.min.css';
 
 const INITIAL_STATE = {
@@ -10,18 +13,32 @@ const INITIAL_STATE = {
   tags: '',
   published: false,
   imageUrl: '',
-  excerpt: ''
+  excerpt: '',
+  visibility: 'public'
 };
 
 const CreateBlog = ({ onBlogCreated }) => {
+  const navigate = useNavigate();
+  const { entitlements, isPremium, subscription, refreshSubscription } = useAuth();
   const [formData, setFormData] = useState(INITIAL_STATE);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState('');
+  const [upgradeReason, setUpgradeReason] = useState(null);
   const editorRef = useRef(null);
   const editorInstanceRef = useRef(null);
+
+  const blogLimit = entitlements.blogLimit;
+  const blogsUsed = subscription?.usage?.blogsUsed ?? 0;
+  const limitReached = blogLimit !== null && blogsUsed >= blogLimit;
+
+  useEffect(() => {
+    if (!subscription) {
+      refreshSubscription();
+    }
+  }, [subscription, refreshSubscription]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -32,6 +49,17 @@ const CreateBlog = ({ onBlogCreated }) => {
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (!entitlements.featuredImage) {
+      setUpgradeReason({
+        icon: 'featuredImage',
+        title: 'Featured images are a Pro feature',
+        description: 'Add a cover image to your posts so they stand out in the archive.'
+      });
+      e.target.value = '';
+      return;
+    }
+
     if (!file.type.startsWith('image/')) { setError('Please select an image file'); return; }
     if (file.size > 5 * 1024 * 1024) { setError('Image size must be less than 5MB'); return; }
 
@@ -96,10 +124,29 @@ const CreateBlog = ({ onBlogCreated }) => {
       if (editorInstanceRef.current) editorInstanceRef.current.value('');
       setPreview('');
       setSuccess(true);
+      refreshSubscription();
       if (onBlogCreated) onBlogCreated();
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Something went wrong.');
+      const code = err.response?.data?.code;
+
+      if (code === 'PREMIUM_REQUIRED' || code === 'BLOG_LIMIT_REACHED') {
+        setUpgradeReason({
+          icon: code === 'BLOG_LIMIT_REACHED' ? 'privatePosts' : 'featuredImage',
+          title:
+            code === 'BLOG_LIMIT_REACHED'
+              ? `You have used all ${blogLimit} posts on the Free plan`
+              : 'That is a Pro feature',
+          description:
+            code === 'BLOG_LIMIT_REACHED'
+              ? 'Free accounts can hold 10 posts at a time. Delete one to make room, or upgrade for unlimited posts.'
+              : err.response?.data?.message,
+          limit: code === 'BLOG_LIMIT_REACHED' ? blogLimit : null
+        });
+        setError('');
+      } else {
+        setError(err.response?.data?.message || 'Something went wrong.');
+      }
     } finally {
       setLoading(false);
     }
@@ -121,6 +168,45 @@ const CreateBlog = ({ onBlogCreated }) => {
         </div>
       )}
 
+      <div className="mb-6 p-4 bg-white/[0.03] border border-white/[0.06] rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          {isPremium ? (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest bg-amber-500/10 text-amber-300 border border-amber-500/20 rounded-lg">
+              <Crown size={12} /> Pro
+            </span>
+          ) : (
+            <span className="inline-flex items-center px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 rounded-lg">
+              Free
+            </span>
+          )}
+          <p className="text-sm text-white/50">
+            {isPremium
+              ? 'Unlimited posts, featured images and private drafts.'
+              : `${blogsUsed} of ${blogLimit} posts used`}
+          </p>
+        </div>
+        {!isPremium && (
+          <button
+            type="button"
+            onClick={() => setUpgradeReason({
+              icon: 'premiumBadge',
+              title: 'Unlock everything with Pro',
+              description: 'Unlimited posts, featured images, private drafts and a custom accent theme.'
+            })}
+            className="px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/20 text-sm font-medium transition-all"
+          >
+            Upgrade to Pro
+          </button>
+        )}
+      </div>
+
+      {limitReached && (
+        <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 text-amber-200 rounded-xl text-sm">
+          You have reached the {blogLimit} post limit on the Free plan. Delete an existing post to make room, or
+          upgrade for unlimited posts.
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="relative">
           <label className="text-sm font-medium text-white/60 block mb-2">Blog Title</label>
@@ -139,7 +225,14 @@ const CreateBlog = ({ onBlogCreated }) => {
         </div>
 
         <div>
-          <label className="text-sm font-medium text-white/60 block mb-2">Featured Image</label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-sm font-medium text-white/60">Featured Image</label>
+            {!entitlements.featuredImage && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest bg-amber-500/10 text-amber-300 border border-amber-500/20 rounded-lg">
+                <Crown size={11} /> Pro
+              </span>
+            )}
+          </div>
           {preview ? (
             <div className="relative group">
               <img src={preview} alt="Preview" className="w-full h-64 object-cover rounded-xl border border-white/[0.06]" />
@@ -151,13 +244,27 @@ const CreateBlog = ({ onBlogCreated }) => {
                 <X className="w-4 h-4" />
               </button>
             </div>
-          ) : (
+          ) : entitlements.featuredImage ? (
             <label className="flex flex-col items-center justify-center w-full h-56 border border-dashed border-white/[0.12] rounded-xl cursor-pointer bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
               <Upload className="w-8 h-8 text-white/20 mb-2" />
               <p className="text-sm text-white/40 font-medium">Click to upload image</p>
               <p className="text-xs text-white/20 mt-1">PNG, JPG, JPEG up to 5MB</p>
               <input type="file" onChange={handleImageUpload} disabled={uploading} accept="image/*" className="hidden" />
             </label>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setUpgradeReason({
+                icon: 'featuredImage',
+                title: 'Featured images are a Pro feature',
+                description: 'Add a cover image to your posts so they stand out in the archive.'
+              })}
+              className="flex flex-col items-center justify-center w-full h-56 border border-dashed border-white/[0.08] rounded-xl bg-white/[0.01] hover:bg-white/[0.03] transition-colors"
+            >
+              <Crown className="w-7 h-7 text-amber-400/60 mb-2" />
+              <p className="text-sm text-white/40 font-medium">Unlock featured images</p>
+              <p className="text-xs text-white/20 mt-1">Available on the Pro plan</p>
+            </button>
           )}
           {uploading && (
             <div className="mt-2 flex items-center gap-2 text-indigo-400 text-sm">
@@ -202,17 +309,51 @@ const CreateBlog = ({ onBlogCreated }) => {
           <p className="text-xs text-white/20 mt-2">Supports GitHub-style markdown: tables, checklists, code fences, headings, links and images.</p>
         </div>
 
-        <div className="flex items-center justify-between pt-4 border-t border-white/[0.06]">
-          <label className="flex items-center cursor-pointer group">
-            <input
-              type="checkbox"
-              name="published"
-              checked={formData.published}
-              onChange={handleChange}
-              className="w-4 h-4 rounded border-white/20 text-indigo-500 focus:ring-indigo-500/40 bg-white/[0.04]"
-            />
-            <span className="ml-2 text-sm text-white/40 group-hover:text-white/60 transition-colors">Publish immediately</span>
-          </label>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-white/[0.06]">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <label className="flex items-center cursor-pointer group">
+              <input
+                type="checkbox"
+                name="published"
+                checked={formData.published}
+                onChange={handleChange}
+                className="w-4 h-4 rounded border-white/20 text-indigo-500 focus:ring-indigo-500/40 bg-white/[0.04]"
+              />
+              <span className="ml-2 text-sm text-white/40 group-hover:text-white/60 transition-colors">Publish immediately</span>
+            </label>
+
+            {entitlements.privatePosts ? (
+              <label className="flex items-center cursor-pointer group">
+                <input
+                  type="checkbox"
+                  name="visibility"
+                  checked={formData.visibility === 'private'}
+                  onChange={(e) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      visibility: e.target.checked ? 'private' : 'public'
+                    }));
+                  }}
+                  className="w-4 h-4 rounded border-white/20 text-indigo-500 focus:ring-indigo-500/40 bg-white/[0.04]"
+                />
+                <Lock className="w-3.5 h-3.5 ml-2 text-white/30" />
+                <span className="ml-1.5 text-sm text-white/40 group-hover:text-white/60 transition-colors">Keep private</span>
+              </label>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setUpgradeReason({
+                  icon: 'privatePosts',
+                  title: 'Private posts are a Pro feature',
+                  description: 'Mark a post as private so its link returns nothing for everyone except you.'
+                })}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-medium transition-all hover:bg-amber-500/20"
+              >
+                <Lock size={12} />
+                Private posts on Pro
+              </button>
+            )}
+          </div>
 
           <button
             type="submit"
@@ -223,6 +364,17 @@ const CreateBlog = ({ onBlogCreated }) => {
           </button>
         </div>
       </form>
+
+      {upgradeReason && (
+        <UpgradeModal
+          reason={upgradeReason}
+          onClose={() => setUpgradeReason(null)}
+          onViewPlans={() => {
+            setUpgradeReason(null);
+            navigate('/premium');
+          }}
+        />
+      )}
     </div>
   );
 };

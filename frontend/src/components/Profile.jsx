@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Crown, Sparkles } from 'lucide-react';
 import { useAuth } from '../Auth/AuthContext';
 import { profileAPI, uploadAPI } from '../api';
+import AccentPicker from './Premium/AccentPicker';
+import UpgradeModal from './Premium/UpgradeModal';
+import { formatExpiry } from '../premium/plans';
 
 const initialSocialHandles = {
   twitter: '',
@@ -17,17 +21,19 @@ const getEmptyProfile = (fallbackEmail = '') => ({
   bio: '',
   profilePicture: '',
   email: fallbackEmail,
+  accent: 'indigo',
   socialHandles: { ...initialSocialHandles }
 });
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { user, updateCurrentUser } = useAuth();
+  const { user, updateCurrentUser, entitlements, isPremium, isProSubscriber, refreshSubscription } = useAuth();
   const [profile, setProfile] = useState(getEmptyProfile(user?.email || ''));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [status, setStatus] = useState({ error: '', success: '' });
+  const [upgradeReason, setUpgradeReason] = useState(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -43,7 +49,7 @@ const Profile = () => {
           }
         };
         setProfile(merged);
-      } catch (error) {
+      } catch {
         setStatus({ error: 'Failed to load profile information.', success: '' });
       } finally {
         setLoading(false);
@@ -55,6 +61,19 @@ const Profile = () => {
 
   const updateField = (key, value) => {
     setProfile((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleAccentChange = (accent) => {
+    if (!entitlements.customTheme) {
+      setUpgradeReason({
+        icon: 'customTheme',
+        title: 'Custom themes are a Pro feature',
+        description: 'Pick one of eight accent colours and apply it to your profile and every post you publish.'
+      });
+      return;
+    }
+
+    setProfile((prev) => ({ ...prev, accent }));
   };
 
   const updateSocial = (key, value) => {
@@ -82,7 +101,7 @@ const Profile = () => {
       const imageUrl = response.data?.imageUrl || '';
       setProfile((prev) => ({ ...prev, profilePicture: imageUrl }));
       setStatus({ error: '', success: 'Profile image uploaded. Save profile to apply changes.' });
-    } catch (error) {
+    } catch {
       setStatus({ error: 'Image upload failed. Please try again.', success: '' });
     } finally {
       setUploading(false);
@@ -102,6 +121,10 @@ const Profile = () => {
       socialHandles: profile.socialHandles
     };
 
+    if (entitlements.customTheme) {
+      payload.accent = profile.accent;
+    }
+
     try {
       const response = await profileAPI.updateProfile(payload);
       const updatedUser = response.data.user;
@@ -114,6 +137,7 @@ const Profile = () => {
           ...(updatedUser.socialHandles || {})
         }
       }));
+      refreshSubscription();
       setStatus({ error: '', success: 'Profile updated successfully.' });
     } catch (error) {
       const message =
@@ -135,7 +159,7 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white pb-20">
+    <div className="min-h-screen bg-[#0a0a0f] text-white pb-20 accent-scope" data-accent={profile.accent}>
       <nav className="bg-[#0a0a0f]/95 backdrop-blur-md border-b border-white/[0.06] sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
@@ -143,12 +167,26 @@ const Profile = () => {
               <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">Profile Setup</h1>
               <p className="text-xs text-white/50 mt-1">Complete your public writer profile</p>
             </div>
-            <button
-              onClick={() => navigate('/blogs')}
-              className="bg-white/[0.06] border border-white/[0.08] text-white/70 hover:text-white hover:bg-white/[0.1] px-4 py-2 rounded-xl font-medium transition-all"
-            >
-              Go to Blogs
-            </button>
+            <div className="flex items-center gap-3">
+              {isProSubscriber ? (
+                <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest bg-amber-500/10 text-amber-300 border border-amber-500/20 rounded-lg">
+                  <Crown size={12} /> Pro
+                </span>
+              ) : (
+                <button
+                  onClick={() => navigate('/premium')}
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest bg-amber-500/10 text-amber-300 border border-amber-500/20 rounded-lg transition-all hover:bg-amber-500/20"
+                >
+                  <Sparkles size={12} /> Upgrade
+                </button>
+              )}
+              <button
+                onClick={() => navigate('/blogs')}
+                className="bg-white/[0.06] border border-white/[0.08] text-white/70 hover:text-white hover:bg-white/[0.1] px-4 py-2 rounded-xl font-medium transition-all"
+              >
+                Go to Blogs
+              </button>
+            </div>
           </div>
         </div>
       </nav>
@@ -273,6 +311,34 @@ const Profile = () => {
               </div>
             </div>
 
+            <div className="pt-6 border-t border-white/[0.06]">
+              <AccentPicker
+                value={profile.accent}
+                onChange={handleAccentChange}
+                disabled={!entitlements.customTheme}
+              />
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-6 border-t border-white/[0.06]">
+              <div>
+                <p className="text-sm font-medium text-white/70">
+                  {isPremium ? 'Pro plan active' : 'Free plan'}
+                </p>
+                <p className="text-xs text-white/40 mt-0.5">
+                  {isPremium
+                    ? `Renews on ${formatExpiry(user?.premiumExpiresAt) || 'the next billing date'}`
+                    : 'Upgrade for featured images, private posts, unlimited posts and a custom theme.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/premium')}
+                className="px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/20 text-sm font-medium transition-all"
+              >
+                {isPremium ? 'Manage plan' : 'Upgrade to Pro'}
+              </button>
+            </div>
+
             <div className="flex justify-end">
               <button
                 type="submit"
@@ -285,6 +351,17 @@ const Profile = () => {
           </div>
         </form>
       </div>
+
+      {upgradeReason && (
+        <UpgradeModal
+          reason={upgradeReason}
+          onClose={() => setUpgradeReason(null)}
+          onViewPlans={() => {
+            setUpgradeReason(null);
+            navigate('/premium');
+          }}
+        />
+      )}
     </div>
   );
 };

@@ -1,7 +1,12 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'https://blogifyy-hugk.onrender.com/api/';
-//const API_BASE_URL = 'http://localhost:3000/api/'; //for dev
+const resolveApiBaseUrl = () => {
+  const configured = (import.meta.env.VITE_API_BASE_URI || '').trim();
+  const base = configured || 'https://blogifyy-hugk.onrender.com';
+  return `${base.replace(/\/+$/, '')}/api/`;
+};
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -80,14 +85,23 @@ export const blogAPI = {
     if (tag) params.set('tag', tag);
     if (search) params.set('search', search);
     if (username) params.set('username', username);
-    return api.get(`/blogs?${params.toString()}`);
+    return publicApi.get(`/blogs?${params.toString()}`);
   },
-  getBlog: (id) => api.get(`/blogs/${id}`),
+  getBlog: (idOrSlug) => publicApi.get(`/blogs/${idOrSlug}`),
+  getBlogAnalytics: (idOrSlug) => api.get(`/blogs/${idOrSlug}/analytics`),
   createBlog: (blogData) => api.post('/blogs', blogData),
-  updateBlog: (id, blogData) => api.put(`/blogs/${id}`, blogData),
-  deleteBlog: (id) => api.delete(`/blogs/${id}`),
+  updateBlog: (idOrSlug, blogData) => api.put(`/blogs/${idOrSlug}`, blogData),
+  deleteBlog: (idOrSlug) => api.delete(`/blogs/${idOrSlug}`),
   getUserBlogs: () => api.get('/blogs/user/me'),
   getAllBlogsAdmin: () => api.get('/blogs/admin/all'),
+};
+
+export const premiumAPI = {
+  getPlans: () => publicApi.get('/premium/plans'),
+  getSubscription: () => api.get('/premium/me'),
+  createOrder: (plan) => api.post('/premium/create-order', { plan }),
+  verifyPayment: (payload) => api.post('/premium/verify', payload),
+  cancelSubscription: () => api.post('/premium/cancel'),
 };
 
 export const commentAPI = {

@@ -40,11 +40,11 @@ export default function UserProfilePopup({ author, onClose }) {
             <p className="text-white/90 font-semibold text-lg">{author.name || 'Anonymous'}</p>
             <p className="text-indigo-300 text-sm flex items-center gap-1.5">
               @{fallbackUsername(author)}
-              {author.role === 'admin' && (
+              {author.isAffiliated && (
                 <img
                   src={verifiedBadge}
-                  alt="Admin verified"
-                  title="blogifyadmin - this account is affiliated with blogify"
+                  alt="Blogify affiliated"
+                  title="This account is affiliated with Blogify"
                   className="w-4 h-4 object-contain"
                 />
               )}

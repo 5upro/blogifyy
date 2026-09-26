@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { blogAPI } from '../api';
 import { useAuth } from '../Auth/AuthContext';
-import { Plus, Trash2, User } from 'lucide-react';
+import { Plus, Trash2, User, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import UserProfilePopup from './UserProfilePopup';
+import PremiumBadge from './Premium/PremiumBadge';
 import verifiedBadge from '../assets/verified.png';
 
 const BlogList = () => {
@@ -159,7 +160,7 @@ const BlogList = () => {
             {blogs.map((blog, index) => (
               <article
                 key={blog._id}
-                onClick={() => navigate(`/blog/${blog._id}`)}
+                onClick={() => navigate(`/blog/${blog.slug || blog._id}`)}
                 className={`group relative bg-white/[0.03] border border-white/[0.06] rounded-2xl transition-all duration-500 hover:border-indigo-500/30 hover:shadow-[0_0_40px_-12px_rgba(99,102,241,0.15)] hover:-translate-y-1 flex flex-col justify-between cursor-pointer overflow-hidden ${
                   index === 0 ? 'md:col-span-2 lg:col-span-2' : ''
                 }`}
@@ -194,20 +195,31 @@ const BlogList = () => {
                         </div>
                         <span className="text-[10px] font-bold uppercase tracking-wider text-white/30 flex items-center gap-1">
                           @{displayUsername(blog.author)}
-                          {blog.author?.role === 'admin' && (
+                          {blog.author?.isAffiliated && (
                             <img
                               src={verifiedBadge}
-                              alt="Admin verified"
-                              title="blogifyadmin - this account is affiliated with blogify"
+                              alt="Blogify affiliated"
+                              title="This account is affiliated with Blogify"
                               className="w-3.5 h-3.5 object-contain"
                             />
+                          )}
+                          {(blog.author?.plan === 'pro' && blog.author?.premiumStatus === 'active') && (
+                            <PremiumBadge showLabel={false} />
                           )}
                         </span>
                       </button>
                     </div>
-                    <span className="text-[10px] font-medium text-white/20">
-                      {blog.createdAt ? new Date(blog.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Draft'}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {blog.visibility === 'private' && (
+                        <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest bg-white/[0.06] text-white/40 border border-white/[0.08] px-2 py-1 rounded-lg">
+                          <Lock size={9} />
+                          Private
+                        </span>
+                      )}
+                      <span className="text-[10px] font-medium text-white/20">
+                        {blog.createdAt ? new Date(blog.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Draft'}
+                      </span>
+                    </div>
                   </div>
 
                   <h3 className={`font-bold text-white/90 leading-tight mb-3 group-hover:text-indigo-300 transition-colors ${

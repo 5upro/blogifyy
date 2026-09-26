@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 import { useAuth } from './AuthContext';
+import VerifyOTP from './VerifyOTP';
 import ReCAPTCHA from 'react-google-recaptcha';
 import { useNavigate } from 'react-router-dom';
+import { RECAPTCHA_ENABLED, RECAPTCHA_SITE_KEY } from '../config/captcha';
 
 const Login = ({ onToggle, onForgotPassword }) => {
-  const { login } = useAuth();
+  const { login, updateCurrentUser } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ identifier: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [recaptchaToken, setRecaptchaToken] = useState(null);
+  const [otpEmail, setOtpEmail] = useState('');
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -20,7 +23,7 @@ const Login = ({ onToggle, onForgotPassword }) => {
     setLoading(true);
     setError('');
 
-    if (!recaptchaToken) {
+    if (RECAPTCHA_ENABLED && !recaptchaToken) {
       setError('Please verify the reCAPTCHA');
       setLoading(false);
       return;
@@ -28,12 +31,55 @@ const Login = ({ onToggle, onForgotPassword }) => {
 
     const result = await login(formData);
     if (!result.success) {
-      setError(result.message);
+      if (result.requiresOtp && result.email) {
+        setOtpEmail(result.email);
+      } else {
+        setError(result.message);
+      }
     } else {
       navigate('/profile');
     }
     setLoading(false);
   };
+
+  const handleOTPVerified = (verifiedUser) => {
+    if (verifiedUser) {
+      updateCurrentUser(verifiedUser);
+      navigate('/profile');
+      return;
+    }
+    setOtpEmail('');
+  };
+
+  if (otpEmail) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0f] px-4 py-8 relative overflow-hidden">
+        <div className="absolute top-1/4 -left-40 w-80 h-80 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-1/4 -right-40 w-80 h-80 bg-violet-500/10 rounded-full blur-[100px] pointer-events-none" />
+
+        <div className="w-full max-w-md relative z-10">
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold text-white/95 mb-2">Verify Your Email</h1>
+            <p className="text-white/40 text-sm">We sent a fresh 6-digit code to your inbox</p>
+          </div>
+
+          <VerifyOTP email={otpEmail} onVerified={handleOTPVerified} />
+
+          <div className="mt-8 text-center border-t border-white/[0.06] pt-6">
+            <button
+              onClick={() => {
+                setOtpEmail('');
+                setError('');
+              }}
+              className="text-sm text-white/30 hover:text-white/60 transition-colors"
+            >
+              Back to Sign In
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0a0a0f] px-4 py-8 relative overflow-hidden">
@@ -110,13 +156,15 @@ const Login = ({ onToggle, onForgotPassword }) => {
             />
           </div>
 
-          <div className="flex justify-center pt-2">
-            <ReCAPTCHA
-              sitekey="6LdTasQtAAAAAFoRIksr0fnQWMc-isa5sDuF34j9"
-              onChange={setRecaptchaToken}
-              theme="dark"
-            />
-          </div>
+          {RECAPTCHA_ENABLED && (
+            <div className="flex justify-center pt-2">
+              <ReCAPTCHA
+                siteKey={RECAPTCHA_SITE_KEY}
+                onChange={setRecaptchaToken}
+                theme="dark"
+              />
+            </div>
+          )}
 
           <button
             type="submit"

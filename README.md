@@ -46,6 +46,14 @@ A modern blogging platform built with MongoDB, Express, React, and Node.js. Curr
 - Role-based access control
 - System statistics
 
+### Premium (Razorpay)
+- Free plan: 10 posts, public visibility only, no featured image
+- Pro plan: unlimited posts, featured image, private posts, custom accent theme, Pro badge
+- Payments verified server-side with an HMAC signature; the amount always comes from the plan catalog
+- Public post URLs are slug based (`/blog/:slug`), legacy `/blog/<id>` links resolve and redirect
+- A private post returns 404 for everyone except its author and admins
+- Cancelling keeps Pro active until the end of the paid period
+
 ## Setup
 
 ### Backend
@@ -75,5 +83,7 @@ CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
 FRONTEND_URL=http://localhost:5173
+RAZORPAY_KEY_ID=your_razorpay_key_id
+RAZORPAY_KEY_SECRET=your_razorpay_key_secret
 ```
 
