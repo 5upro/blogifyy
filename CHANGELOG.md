@@ -78,10 +78,16 @@ The premium tier, post privacy, view analytics, and a rebuilt public reading exp
 ### Fixed
 - Posts created before the visibility field existed were missing from the public archive, because a query filtered on a value the stored documents did not have
 - The captcha widget was configured with a misspelled prop, so the deployed site silently ran on a fallback key
+- A failing captcha no longer takes down the whole interface. The widget is isolated behind its own error boundary, and a page-level boundary now shows the real error with a retry instead of replacing the app with a single line of text
 - Cancelling a subscription appeared to do nothing, because the page only checked whether the account was Pro and ignored the cancelled status
 - The Razorpay preview sheet closed immediately with an error, caused by passing an order id that does not exist on Razorpay's servers
 - The privacy policy predated subscriptions, payments, view counts, and the affiliated badge, and has been brought up to date
 - A stray unstyled line on the registration page was removed
+
+### Deployment notes
+- The reCAPTCHA site key must list every domain that serves the frontend, including preview deployments. A key that is not registered for the current domain makes the widget throw, which previously crashed the entire page. Registering the domain is a dashboard change and needs no redeploy.
+- The captcha is skipped outside production builds, so local development is unaffected either way.
+- Real payments still need a Razorpay key secret. The key id alone cannot create an order, so demo mode covers local testing and a secret covers production.
 
 ### Notes for reviewers
 - View counting is deliberately naive. It counts requests, so it will overcount if a reader refreshes. A more honest counter needs deduplication, which was not worth the complexity at this stage.
