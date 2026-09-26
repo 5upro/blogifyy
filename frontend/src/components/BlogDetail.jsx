@@ -2,20 +2,108 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { blogAPI, commentAPI, likeAPI } from '../api';
 import { useAuth } from '../Auth/AuthContext';
-import { ArrowLeft, User, Calendar, Trash2, Loader2, Heart, Send, MessageCircle } from 'lucide-react';
+import { ArrowLeft, User, Calendar, Trash2, Loader2, Heart, Send, MessageCircle, Lock, Globe, Eye } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import UserProfilePopup from './UserProfilePopup';
+import PremiumBadge from './Premium/PremiumBadge';
+import UpgradeModal from './Premium/UpgradeModal';
 import verifiedBadge from '../assets/verified.png';
 
-const BlogDetail = () => {
-  const { id } = useParams();
+const ViewsPanel = ({ blogId }) => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const [views, setViews] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [locked, setLocked] = useState(false);
+  const [reason, setReason] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadViews = async () => {
+      try {
+        const response = await blogAPI.getBlogAnalytics(blogId);
+        if (active) setViews(response.data.analytics.views);
+      } catch (err) {
+        if (!active) return;
+        if (err.response?.data?.code === 'PREMIUM_REQUIRED') {
+          setLocked(true);
+        } else {
+          setViews(null);
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    loadViews();
+
+    return () => {
+      active = false;
+    };
+  }, [blogId]);
+
+  if (loading) return null;
+
+  if (locked) {
+    return (
+      <>
+        <div className="mt-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Eye size={18} className="text-amber-300" />
+            <div>
+              <p className="text-sm font-medium text-amber-200">Post analytics</p>
+              <p className="text-xs text-amber-200/60 mt-0.5">See how many readers view this post. Available on Pro.</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setReason({
+              icon: 'premiumBadge',
+              title: 'Analytics are a Pro feature',
+              description: 'View counts for your posts, visible only to you.'
+            })}
+            className="px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/20 text-sm font-medium transition-all"
+          >
+            Unlock analytics
+          </button>
+        </div>
+
+        {reason && (
+          <UpgradeModal
+            reason={reason}
+            onClose={() => setReason(null)}
+            onViewPlans={() => {
+              setReason(null);
+              navigate('/premium');
+            }}
+          />
+        )}
+      </>
+    );
+  }
+
+  return (
+    <div className="mt-6 p-4 bg-white/[0.03] border border-white/[0.06] rounded-2xl flex items-center gap-3">
+      <Eye size={18} className="text-indigo-300" />
+      <p className="text-sm text-white/60">
+        <span className="font-semibold text-white/90">{views}</span> {views === 1 ? 'view' : 'views'}
+      </p>
+    </div>
+  );
+};
+
+const BlogDetail = () => {
+  const { slug } = useParams();
+  const navigate = useNavigate();
+  const { user, isPremium } = useAuth();
   const [blog, setBlog] = useState(null);
+  const [blogId, setBlogId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [savingVisibility, setSavingVisibility] = useState(false);
+  const [visibilityError, setVisibilityError] = useState('');
+  const [upgradeReason, setUpgradeReason] = useState(null);
   const [showAuthorPopup, setShowAuthorPopup] = useState(false);
   const [comments, setComments] = useState([]);
   const [commentsLoading, setCommentsLoading] = useState(true);
@@ -31,20 +119,28 @@ const BlogDetail = () => {
 
   useEffect(() => {
     fetchBlog();
-    fetchComments();
-  }, [id]);
+  }, [slug]);
 
   useEffect(() => {
+    if (!blogId) return;
+    fetchComments();
     fetchLikes();
-  }, [id, user]);
+  }, [blogId, user]);
 
   const fetchBlog = async () => {
     try {
       setLoading(true);
-      const response = await blogAPI.getBlog(id);
-      setBlog(response.data.blog || response.data);
+      const response = await blogAPI.getBlog(slug);
+      const data = response.data.blog || response.data;
+      setBlog(data);
+      setBlogId(data._id);
+
+      if (data.slug && data.slug !== slug) {
+        navigate(`/blog/${data.slug}`, { replace: true });
+      }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load blog');
+      const isMissing = err.response?.status === 404;
+      setError(isMissing ? 'This post is not available.' : err.response?.data?.message || 'Failed to load blog');
     } finally {
       setLoading(false);
     }
@@ -54,7 +150,7 @@ const BlogDetail = () => {
     if (!window.confirm('Delete this blog permanently?')) return;
     setDeleting(true);
     try {
-      await blogAPI.deleteBlog(id);
+      await blogAPI.deleteBlog(blogId);
       navigate('/blogs');
     } catch {
       setError('Failed to delete blog');
@@ -62,10 +158,47 @@ const BlogDetail = () => {
     }
   };
 
+  const handleToggleVisibility = async () => {
+    const nextVisibility = blog.visibility === 'private' ? 'public' : 'private';
+
+    if (nextVisibility === 'private' && !isPremium) {
+      setUpgradeReason({
+        icon: 'privatePosts',
+        title: 'Private posts are a Pro feature',
+        description: 'Make this post unlisted so its link returns nothing for everyone except you.'
+      });
+      return;
+    }
+
+    if (nextVisibility === 'private' && !window.confirm('Make this post private? Its link will stop working for everyone else.')) {
+      return;
+    }
+
+    setSavingVisibility(true);
+    setVisibilityError('');
+
+    try {
+      const response = await blogAPI.updateBlog(blogId, { visibility: nextVisibility });
+      setBlog((prev) => ({ ...prev, visibility: response.data.blog.visibility }));
+    } catch (err) {
+      if (err.response?.data?.code === 'PREMIUM_REQUIRED') {
+        setUpgradeReason({
+          icon: 'privatePosts',
+          title: 'Private posts are a Pro feature',
+          description: err.response.data.message
+        });
+      } else {
+        setVisibilityError(err.response?.data?.message || 'Could not change the visibility.');
+      }
+    } finally {
+      setSavingVisibility(false);
+    }
+  };
+
   const fetchComments = async () => {
     try {
       setCommentsLoading(true);
-      const response = await commentAPI.getBlogComments(id);
+      const response = await commentAPI.getBlogComments(blogId);
       setComments(Array.isArray(response.data) ? response.data : []);
     } catch {
       setComments([]);
@@ -76,7 +209,7 @@ const BlogDetail = () => {
 
   const fetchLikes = async () => {
     try {
-      const usersResponse = await likeAPI.getLikeUsers(id);
+      const usersResponse = await likeAPI.getLikeUsers(blogId);
       setLikeCount(usersResponse.data?.likeCount || 0);
 
       if (!user) {
@@ -84,7 +217,7 @@ const BlogDetail = () => {
         return;
       }
 
-      const statusResponse = await likeAPI.getLikeStatus(id);
+      const statusResponse = await likeAPI.getLikeStatus(blogId);
       setLiked(Boolean(statusResponse.data?.liked));
       setLikeCount(statusResponse.data?.likeCount ?? (usersResponse.data?.likeCount || 0));
     } catch {
@@ -101,7 +234,7 @@ const BlogDetail = () => {
 
     try {
       setLiking(true);
-      const response = await likeAPI.toggleLike(id);
+      const response = await likeAPI.toggleLike(blogId);
       setLiked(Boolean(response.data?.liked));
       setLikeCount(response.data?.likeCount ?? 0);
     } catch {
@@ -123,7 +256,7 @@ const BlogDetail = () => {
 
     try {
       setSubmittingComment(true);
-      const response = await commentAPI.addComment(id, { content });
+      const response = await commentAPI.addComment(blogId, { content });
       if (response.data?.comment) {
         setComments((prev) => [response.data.comment, ...prev]);
       }
@@ -163,7 +296,7 @@ const BlogDetail = () => {
 
     try {
       setSubmittingReplyFor(parentCommentId);
-      const response = await commentAPI.addComment(id, { content, parentComment: parentCommentId });
+      const response = await commentAPI.addComment(blogId, { content, parentComment: parentCommentId });
       if (response.data?.comment) {
         setRepliesByParent((prev) => ({
           ...prev,
@@ -192,10 +325,10 @@ const BlogDetail = () => {
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#0a0a0f] px-4">
         <p className="text-red-400 text-lg font-semibold mb-4">{error}</p>
         <button
-          onClick={() => navigate('/blogs')}
+          onClick={() => navigate(user ? '/blogs' : '/')}
           className="flex items-center gap-2 px-6 py-3 bg-white/[0.06] text-white rounded-xl hover:bg-white/[0.1] transition-colors"
         >
-          <ArrowLeft size={25} /> Back to blogs
+          <ArrowLeft size={25} /> {user ? 'Back to blogs' : 'Back home'}
         </button>
       </div>
     );
@@ -211,20 +344,33 @@ const BlogDetail = () => {
 
   const isAuthor = user && (blog.author?._id === user.id || user.role === 'admin');
   const displayUsername = blog.author?.username || String(blog.author?.name || 'anonymous').toLowerCase().replace(/\s+/g, '_');
+  const authorAccent = blog.author?.theme?.accent || 'indigo';
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white">
+    <div
+      className="min-h-screen bg-[#0a0a0f] text-white accent-scope"
+      data-accent={authorAccent}
+    >
       <div className="fixed inset-0 bg-[linear-gradient(to_right,#ffffff06_1px,transparent_1px),linear-gradient(to_bottom,#ffffff06_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
 
       <div className="relative">
-        <div className="max-w-4xl mx-auto px-6 pt-8">
+        <div className="max-w-4xl mx-auto px-6 pt-8 flex items-center justify-between">
           <button
-            onClick={() => navigate('/blogs')}
-            className="flex items-center gap-2 text-white/40 hover:text-white/80 transition-colors mb-8 group"
+            onClick={() => navigate(user ? '/blogs' : '/')}
+            className="flex items-center gap-2 text-white/40 hover:text-white/80 transition-colors group"
           >
             <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-            <span className="font-medium">Back to blogs</span>
+            <span className="font-medium">{user ? 'Back to blogs' : 'Back home'}</span>
           </button>
+
+          {!user && (
+            <button
+              onClick={() => navigate('/login')}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 text-white text-sm font-semibold transition-all hover:shadow-[0_0_24px_-4px_rgba(99,102,241,0.5)]"
+            >
+              Sign in to comment
+            </button>
+          )}
         </div>
 
         {blog.imageUrl && (
@@ -235,6 +381,16 @@ const BlogDetail = () => {
 
         <article className="max-w-4xl mx-auto px-6 py-16">
           <div className="mb-12">
+            <div className="flex flex-wrap items-center gap-2 mb-6">
+              {blog.visibility === 'private' && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold uppercase tracking-widest bg-white/[0.06] text-white/50 border border-white/[0.08] rounded-lg">
+                  <Lock size={11} />
+                  Private
+                </span>
+              )}
+              {blog.author?.plan === 'pro' && <PremiumBadge size="md" />}
+            </div>
+
             <h1 className="text-4xl md:text-5xl font-bold text-white/95 leading-tight mb-8">
               {blog.title}
             </h1>
@@ -255,14 +411,15 @@ const BlogDetail = () => {
                 <div className="text-left">
                   <p className="text-sm font-semibold text-white/80 flex items-center gap-1.5">
                     @{displayUsername}
-                    {blog.author?.role === 'admin' && (
+                    {blog.author?.isAffiliated && (
                       <img
                         src={verifiedBadge}
-                        alt="Admin verified"
-                        title="blogifyadmin - this account is affiliated with blogify"
+                        alt="Blogify affiliated"
+                        title="This account is affiliated with Blogify"
                         className="w-4 h-4 object-contain"
                       />
                     )}
+                    {blog.author?.plan === 'pro' && <PremiumBadge showLabel={false} />}
                   </p>
                   <p className="text-xs text-white/30">{blog.author?.name || 'Anonymous'}</p>
                 </div>
@@ -278,16 +435,41 @@ const BlogDetail = () => {
               </div>
 
               {isAuthor && (
-                <button
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  className="ml-auto flex items-center gap-2 px-4 py-2 text-red-400 hover:bg-red-500/10 rounded-xl transition-all disabled:opacity-50"
-                >
-                  <Trash2 size={18} />
-                  <span className="text-sm font-semibold">{deleting ? 'Deleting...' : 'Delete'}</span>
-                </button>
+                <div className="ml-auto flex items-center gap-2">
+                  <button
+                    onClick={handleToggleVisibility}
+                    disabled={savingVisibility}
+                    className="flex items-center gap-2 px-4 py-2 bg-white/[0.06] border border-white/[0.08] text-white/70 hover:text-white hover:bg-white/[0.1] rounded-xl transition-all disabled:opacity-50"
+                  >
+                    {blog.visibility === 'private' ? <Globe size={18} /> : <Lock size={18} />}
+                    <span className="text-sm font-semibold">
+                      {savingVisibility
+                        ? 'Saving...'
+                        : blog.visibility === 'private'
+                          ? 'Make public'
+                          : 'Make private'}
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    className="flex items-center gap-2 px-4 py-2 text-red-400 hover:bg-red-500/10 rounded-xl transition-all disabled:opacity-50"
+                  >
+                    <Trash2 size={18} />
+                    <span className="text-sm font-semibold">{deleting ? 'Deleting...' : 'Delete'}</span>
+                  </button>
+                </div>
               )}
             </div>
+
+            {isAuthor && <ViewsPanel blogId={blogId} />}
+
+            {visibilityError && (
+              <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-sm text-red-300">
+                {visibilityError}
+              </div>
+            )}
 
             {blog.excerpt && (
               <p className="text-lg text-white/50 leading-relaxed font-medium italic">{blog.excerpt}</p>
@@ -516,6 +698,17 @@ const BlogDetail = () => {
 
       {showAuthorPopup && (
         <UserProfilePopup author={blog.author} onClose={() => setShowAuthorPopup(false)} />
+      )}
+
+      {upgradeReason && (
+        <UpgradeModal
+          reason={upgradeReason}
+          onClose={() => setUpgradeReason(null)}
+          onViewPlans={() => {
+            setUpgradeReason(null);
+            navigate('/premium');
+          }}
+        />
       )}
     </div>
   );

@@ -2,32 +2,17 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { auth } = require('../middleware/auth');
 const User = require('../models/user');
+const { ACCENTS, isValidAccent, hasActivePremium } = require('../utils/premium');
+const { sanitizeSocialHandles, serializeUser } = require('../utils/serializer');
 
 const router = express.Router();
 
-const sanitizeSocialHandles = (socialHandles = {}) => ({
-  twitter: String(socialHandles.twitter || '').trim(),
-  github: String(socialHandles.github || '').trim(),
-  linkedin: String(socialHandles.linkedin || '').trim(),
-  website: String(socialHandles.website || '').trim(),
-  instagram: String(socialHandles.instagram || '').trim()
-});
-
-const serializeUser = (user) => ({
-  id: user._id,
-  name: user.name,
-  username: user.username || '',
-  email: user.email,
-  role: user.role,
-  isVerified: user.isVerified,
-  bio: user.bio || '',
-  profilePicture: user.profilePicture || '',
-  socialHandles: sanitizeSocialHandles(user.socialHandles)
-});
-
 router.get('/me', auth, async (req, res) => {
   try {
-    return res.json({ user: serializeUser(req.user) });
+    return res.json({
+      user: serializeUser(req.user),
+      accents: ACCENTS
+    });
   } catch (error) {
     console.error('Get profile error:', error);
     return res.status(500).json({ message: 'Server error' });
@@ -46,7 +31,8 @@ router.put(
       .withMessage('Username must be 3-20 characters and only letters, numbers, underscore, dot'),
     body('bio').optional().isLength({ max: 300 }).withMessage('Bio must be at most 300 characters'),
     body('profilePicture').optional().isString(),
-    body('socialHandles').optional().isObject().withMessage('socialHandles must be an object')
+    body('socialHandles').optional().isObject().withMessage('socialHandles must be an object'),
+    body('accent').optional().isString().withMessage('Accent must be a string')
   ],
   async (req, res) => {
     try {
@@ -55,7 +41,7 @@ router.put(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { name, username, bio, profilePicture, socialHandles } = req.body;
+      const { name, username, bio, profilePicture, socialHandles, accent } = req.body;
 
       if (name !== undefined) {
         req.user.name = name.trim();
@@ -85,6 +71,21 @@ router.put(
 
       if (socialHandles !== undefined) {
         req.user.socialHandles = sanitizeSocialHandles(socialHandles);
+      }
+
+      if (accent !== undefined) {
+        if (!hasActivePremium(req.user)) {
+          return res.status(402).json({
+            message: 'Custom themes are available on the Pro plan.',
+            code: 'PREMIUM_REQUIRED'
+          });
+        }
+
+        if (!isValidAccent(accent)) {
+          return res.status(400).json({ message: 'Select a valid accent colour' });
+        }
+
+        req.user.theme.accent = accent;
       }
 
       await req.user.save();

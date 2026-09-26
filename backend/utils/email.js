@@ -107,4 +107,74 @@ const sendWelcomeEmail = async ({ toEmail, name }) => {
   return client.sendTransacEmail(email);
 };
 
-module.exports = { sendVerificationEmail, sendPasswordResetEmail, sendSuccessResetEmail, sendWelcomeEmail };
+const formatAmount = (amount, currency) => {
+    const symbol = currency === 'INR' ? '₹' : `${currency} `;
+    return `${symbol}${(amount / 100).toFixed(2)}`;
+};
+
+const formatExpiry = (date) => {
+    if (!date) return 'your next renewal date';
+    return new Date(date).toDateString();
+};
+
+const sendPremiumConfirmationEmail = async ({ toEmail, name, planName, amount, currency, expiresAt }) => {
+  if (!toEmail) {
+    throw new Error('Email is required');
+  }
+
+  const email = new SendSmtpEmail();
+  email.subject = 'Your Blogify Pro subscription is active';
+  email.htmlContent = `
+    <html><body>
+      <h2 style="color: #6366f1;">Welcome to Pro, ${name || 'there'}!</h2>
+      <p>Your payment was successful and Pro features are now unlocked on your account.</p>
+      <ul>
+        <li>Unlimited published posts</li>
+        <li>Featured image on every post</li>
+        <li>Private posts that stay unlisted</li>
+        <li>Custom accent theme and Pro badge</li>
+      </ul>
+      <p>Plan: <strong>${planName}</strong></p>
+      <p>Amount paid: <strong>${formatAmount(amount, currency)}</strong></p>
+      <p>Active until: <strong>${formatExpiry(expiresAt)}</strong></p>
+      <p>Thank you,<br/>Blogify Team</p>
+      <p>For any issues, contact <a href="mailto:blogify-support@surajitsen.live">blogify-support@surajitsen.live</a></p>
+    </body></html>
+  `;
+  email.sender = { email: process.env.EMAIL_FROM, name: 'Blogify Billing' };
+  email.to = [{ email: toEmail }];
+
+  return client.sendTransacEmail(email);
+};
+
+const sendPremiumCancelledEmail = async ({ toEmail, name, expiresAt }) => {
+  if (!toEmail) {
+    throw new Error('Email is required');
+  }
+
+  const email = new SendSmtpEmail();
+  email.subject = 'Your Blogify Pro subscription was cancelled';
+  email.htmlContent = `
+    <html><body>
+      <h2 style="color: #6366f1;">Subscription cancelled</h2>
+      <p>Hi ${name || 'there'}, your Pro subscription has been cancelled.</p>
+      <p>You keep every Pro feature until <strong>${formatExpiry(expiresAt)}</strong>, after which your account returns to the Free plan.</p>
+      <p>You can restart Pro at any time from the pricing page.</p>
+      <p>Thank you,<br/>Blogify Team</p>
+      <p>For any issues, contact <a href="mailto:blogify-support@surajitsen.live">blogify-support@surajitsen.live</a></p>
+    </body></html>
+  `;
+  email.sender = { email: process.env.EMAIL_FROM, name: 'Blogify Billing' };
+  email.to = [{ email: toEmail }];
+
+  return client.sendTransacEmail(email);
+};
+
+module.exports = {
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+  sendSuccessResetEmail,
+  sendWelcomeEmail,
+  sendPremiumConfirmationEmail,
+  sendPremiumCancelledEmail
+};

@@ -33,7 +33,7 @@ export default function PrivacyPolicy() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="privacy-content">
             <h1 className="text-5xl font-bold text-white/90 mb-4">Privacy Policy</h1>
-            <p className="last-updated text-white/40 mb-8">Last Updated: March 14, 2026</p>
+            <p className="last-updated text-white/40 mb-8">Last Updated: September 26, 2026</p>
 
             <section className="mb-8">
               <h2 className="text-3xl font-bold text-white/90 mb-4">1. Scope</h2>
@@ -61,7 +61,20 @@ export default function PrivacyPolicy() {
                 <li><strong>Email verification OTP:</strong> Temporary 6-digit code and expiry time.</li>
                 <li><strong>Password reset OTP:</strong> Temporary 6-digit code and expiry time.</li>
                 <li><strong>Authentication tokens:</strong> JWT used for authenticated API access.</li>
+                <li><strong>OTP delivery timestamp:</strong> Used to limit how often a new verification code can be sent.</li>
               </ul>
+
+              <h3 className="text-2xl font-semibold text-white/80 mb-3">2.7 Subscription and Payment Data</h3>
+              <p className="text-white/60 mb-3">If you upgrade to Pro, we process:</p>
+              <ul className="list-disc list-inside space-y-2 text-white/60 mb-6">
+                <li><strong>Plan and subscription status:</strong> Your plan, activation date, expiry date, and whether the subscription is active or cancelled.</li>
+                <li><strong>Payment references:</strong> The payment identifier and order identifier returned by Razorpay, stored so a repeated payment notification cannot grant a subscription twice.</li>
+                <li><strong>Accent preference:</strong> The single accent colour you selected for your profile and posts.</li>
+              </ul>
+              <p className="text-white/60 mb-6">
+                Card and bank details are entered on Razorpay's hosted checkout and never reach our servers. We store only
+                the payment and order references listed above.
+              </p>
 
               <h3 className="text-2xl font-semibold text-white/80 mb-3">2.3 Blog Content Data</h3>
               <p className="text-white/60 mb-3">When you create or edit blogs, we store:</p>
@@ -93,7 +106,8 @@ export default function PrivacyPolicy() {
                 <li><strong>Token cookie:</strong> HTTP-only cookie named <strong>token</strong> set on login/OTP verification and cleared on logout.</li>
                 <li><strong>Local storage token:</strong> JWT stored in browser localStorage by frontend auth flow.</li>
                 <li><strong>Error telemetry:</strong> Client errors are monitored through Sentry when configured.</li>
-                <li><strong>reCAPTCHA token:</strong> Collected in the registration UI to reduce automated sign-ups.</li>
+                <li><strong>reCAPTCHA token:</strong> Collected in the registration UI to reduce automated sign-ups. Skipped outside production builds.</li>
+                <li><strong>Post view counts:</strong> A per-post counter incremented when the post is opened. No IP address, cookie, or device identifier is attached to a view.</li>
               </ul>
             </section>
 
@@ -119,6 +133,7 @@ export default function PrivacyPolicy() {
                 <li><strong>Web3Forms:</strong> Receives contact form submissions from the Contact page.</li>
                 <li><strong>Google reCAPTCHA:</strong> Used on registration UI to reduce bot activity.</li>
                 <li><strong>Sentry:</strong> Receives frontend error/diagnostic data when Sentry DSN is configured.</li>
+                <li><strong>Razorpay:</strong> Processes subscription payments on a hosted checkout page and returns payment confirmation to our server.</li>
               </ul>
               <p className="text-white/60"><strong>We do not sell personal data.</strong></p>
             </section>
@@ -145,6 +160,9 @@ export default function PrivacyPolicy() {
               <p className="text-white/60">
                 We retain account and blog data while your account and content remain active in the system.
                 Temporary OTP values are stored only for their short validity window and then cleared when used or expired.
+                Cancelling a Pro subscription keeps your Pro features active until the end of the period you already paid for.
+                After a subscription ends, the account returns to the Free plan and the custom accent reverts to the default.
+                Aggregated view counts are retained for as long as the post exists and are erased with it.
               </p>
             </section>
 
@@ -152,8 +170,11 @@ export default function PrivacyPolicy() {
               <h2 className="text-3xl font-bold text-white/90 mb-4">7. Public Content and Admin Access</h2>
               <p className="text-white/60 mb-3">Please note the following behavior in current app functionality:</p>
               <ul className="list-disc list-inside space-y-2 text-white/60 mb-6">
-                <li><strong>Published blogs are public:</strong> Posts marked as published are visible through public blog listing endpoints.</li>
-                <li><strong>Admin moderation tools:</strong> Admin users can view user lists, change user roles, and delete users and their blogs.</li>
+                <li><strong>Published blogs are public:</strong> Posts marked as published and public are readable by anyone, including signed-out visitors, through a public link.</li>
+                <li><strong>Private blogs are unlisted, not hidden:</strong> A private post returns a not found response for everyone except its author and administrators, so the link reveals nothing about whether the post exists.</li>
+                <li><strong>View counts:</strong> We record how many times a public post is opened. View analytics are a Pro feature and are visible only to the post's author.</li>
+                <li><strong>Affiliated badge:</strong> A small badge marks accounts we operate. Affiliation is a separate flag from the administrator role and is not granted by purchasing Pro.</li>
+                <li><strong>Admin moderation tools:</strong> Admin users can view user lists, change user roles, delete users and their blogs, and open any post including private ones.</li>
               </ul>
             </section>
 

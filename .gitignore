@@ -1,1 +1,6 @@
 document-stuffs
+
+# Environment files and local backups. Never commit real credentials.
+.env
+.env.*
+*.env.bak

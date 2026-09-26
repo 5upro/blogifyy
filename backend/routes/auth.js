@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/user');
 const { auth } = require('../middleware/auth');
+const { serializeUser } = require('../utils/serializer');
 const { sendVerificationEmail, sendPasswordResetEmail, sendSuccessResetEmail, sendWelcomeEmail } = require('../utils/email');
 require('dotenv').config();
 const rateLimit = require('express-rate-limit');
@@ -16,6 +17,8 @@ const tokenCookieOptions = {
     maxAge: 24 * 60 * 60 * 1000
 };
 
+const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
+
 // Rate limiter for password reset endpoints — 5 requests per 15 minutes per IP
 const passwordResetLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -23,24 +26,6 @@ const passwordResetLimiter = rateLimit({
     message: { message: 'Too many password reset attempts. Please try again later.' },
     standardHeaders: true,
     legacyHeaders: false,
-});
-
-const serializeUser = (user) => ({
-    id: user._id,
-    name: user.name,
-    username: user.username || '',
-    email: user.email,
-    role: user.role,
-    isVerified: user.isVerified,
-    bio: user.bio || '',
-    profilePicture: user.profilePicture || '',
-    socialHandles: {
-        twitter: user.socialHandles?.twitter || '',
-        github: user.socialHandles?.github || '',
-        linkedin: user.socialHandles?.linkedin || '',
-        website: user.socialHandles?.website || '',
-        instagram: user.socialHandles?.instagram || ''
-    }
 });
 
 router.post('/register', [
@@ -124,7 +109,26 @@ router.post('/login', [
         }
 
         if (!user.isVerified) {
-            return res.status(403).json({ message: 'Email not verified. Please check your inbox.' });
+            let otpSent = false;
+
+            if (user.canResendOTP(OTP_RESEND_COOLDOWN_MS)) {
+                const resendOTP = user.generateOTP();
+                await user.save();
+                otpSent = true;
+
+                sendVerificationEmail({ toEmail: user.email, otp: resendOTP }).catch((err) =>
+                    console.error('Failed to resend verification email:', err.message)
+                );
+            }
+
+            return res.status(403).json({
+                message: otpSent
+                    ? 'Email not verified. A new OTP has been sent to your email.'
+                    : 'Email not verified. Please check your inbox for the OTP.',
+                requiresOtp: true,
+                otpSent,
+                email: user.email
+            });
         }
 
         const token = jwt.sign(

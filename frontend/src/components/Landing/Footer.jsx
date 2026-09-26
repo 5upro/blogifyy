@@ -48,6 +48,7 @@ export default function Footer() {
             <h4 className="text-xs font-semibold uppercase tracking-wider text-white/50 mb-4">Product</h4>
             <ul className="space-y-2.5 text-sm text-white/30">
               <li><button onClick={() => navigate('/')} className="hover:text-white/70 transition-colors">Features</button></li>
+              <li><button onClick={() => navigate('/premium')} className="hover:text-white/70 transition-colors">Premium</button></li>
               <li><a href="https://github.com/blackXploit-404/blogify" target="_blank" rel="noopener noreferrer" className="hover:text-white/70 transition-colors">Source Code</a></li>
               <li><button onClick={() => navigate('/')} className="hover:text-white/70 transition-colors">Self-Host</button></li>
             </ul>

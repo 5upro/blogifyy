@@ -112,3 +112,93 @@
   background: rgba(99, 102, 241, 0.35);
   color: #fff;
 }
+
+/* ─── Premium Accent Theme ─── */
+.accent-scope {
+  --accent: #6366f1;
+  --accent-soft: rgba(99, 102, 241, 0.1);
+  --accent-border: rgba(99, 102, 241, 0.2);
+  --accent-text: #a5b4fc;
+  --accent-glow: rgba(99, 102, 241, 0.5);
+}
+
+.accent-scope[data-accent="violet"] {
+  --accent: #8b5cf6;
+  --accent-soft: rgba(139, 92, 246, 0.1);
+  --accent-border: rgba(139, 92, 246, 0.2);
+  --accent-text: #c4b5fd;
+  --accent-glow: rgba(139, 92, 246, 0.5);
+}
+
+.accent-scope[data-accent="fuchsia"] {
+  --accent: #d946ef;
+  --accent-soft: rgba(217, 70, 239, 0.1);
+  --accent-border: rgba(217, 70, 239, 0.2);
+  --accent-text: #f0abfc;
+  --accent-glow: rgba(217, 70, 239, 0.5);
+}
+
+.accent-scope[data-accent="rose"] {
+  --accent: #f43f5e;
+  --accent-soft: rgba(244, 63, 94, 0.1);
+  --accent-border: rgba(244, 63, 94, 0.2);
+  --accent-text: #fda4af;
+  --accent-glow: rgba(244, 63, 94, 0.5);
+}
+
+.accent-scope[data-accent="amber"] {
+  --accent: #f59e0b;
+  --accent-soft: rgba(245, 158, 11, 0.1);
+  --accent-border: rgba(245, 158, 11, 0.2);
+  --accent-text: #fcd34d;
+  --accent-glow: rgba(245, 158, 11, 0.5);
+}
+
+.accent-scope[data-accent="emerald"] {
+  --accent: #10b981;
+  --accent-soft: rgba(16, 185, 129, 0.1);
+  --accent-border: rgba(16, 185, 129, 0.2);
+  --accent-text: #6ee7b7;
+  --accent-glow: rgba(16, 185, 129, 0.5);
+}
+
+.accent-scope[data-accent="cyan"] {
+  --accent: #06b6d4;
+  --accent-soft: rgba(6, 182, 212, 0.1);
+  --accent-border: rgba(6, 182, 212, 0.2);
+  --accent-text: #67e8f9;
+  --accent-glow: rgba(6, 182, 212, 0.5);
+}
+
+.accent-scope[data-accent="sky"] {
+  --accent: #0ea5e9;
+  --accent-soft: rgba(14, 165, 233, 0.1);
+  --accent-border: rgba(14, 165, 233, 0.2);
+  --accent-text: #7dd3fc;
+  --accent-glow: rgba(14, 165, 233, 0.5);
+}
+
+.accent-text {
+  color: var(--accent-text);
+}
+
+.accent-soft {
+  background-color: var(--accent-soft);
+}
+
+.accent-border {
+  border-color: var(--accent-border);
+}
+
+.accent-button {
+  background-image: linear-gradient(to right, var(--accent), var(--accent));
+  color: #fff;
+}
+
+.accent-glow {
+  box-shadow: 0 0 24px -4px var(--accent-glow);
+}
+
+.accent-dot {
+  background-color: var(--accent);
+}

@@ -31,6 +31,12 @@ const Navbar = forwardRef(({ onGetStarted, handleMagnetic, handleMagneticLeave }
         </div>
         <div className="flex items-center gap-3">
           <button
+            onClick={() => navigate('/premium')}
+            className="hidden sm:inline-flex text-sm text-amber-300/80 hover:text-amber-300 transition-colors px-3 py-1.5"
+          >
+            Premium
+          </button>
+          <button
             onClick={() => navigate('/privacy')}
             className="hidden sm:inline-flex text-sm text-white/60 hover:text-white transition-colors px-3 py-1.5"
           >

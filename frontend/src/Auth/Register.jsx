@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from './AuthContext';
 import VerifyOTP from './VerifyOTP';
 import ReCAPTCHA from 'react-google-recaptcha';
+import { RECAPTCHA_ENABLED, RECAPTCHA_SITE_KEY } from '../config/captcha';
 
 const Register = ({ onToggle }) => {
   const { register } = useAuth();
@@ -22,7 +23,7 @@ const Register = ({ onToggle }) => {
     setLoading(true);
     setError('');
 
-    if (!recaptchaToken) {
+    if (RECAPTCHA_ENABLED && !recaptchaToken) {
       setError('Please verify the reCAPTCHA');
       setLoading(false);
       return;
@@ -191,13 +192,15 @@ const Register = ({ onToggle }) => {
             </div>
           </div>
 
-          <div className="flex justify-center pt-2">
-            <ReCAPTCHA
-              sitekey="6LdTasQtAAAAAFoRIksr0fnQWMc-isa5sDuF34j9"
-              onChange={setRecaptchaToken}
-              theme="dark"
-            />
-          </div>
+          {RECAPTCHA_ENABLED && (
+            <div className="flex justify-center pt-2">
+              <ReCAPTCHA
+                siteKey={RECAPTCHA_SITE_KEY}
+                onChange={setRecaptchaToken}
+                theme="dark"
+              />
+            </div>
+          )}
 
           <button
             type="submit"
@@ -211,7 +214,6 @@ const Register = ({ onToggle }) => {
         <p className="mt-4 text-center text-xs text-white/25 leading-relaxed">
           Registration requires email verification. We'll never share your email.
         </p>
-        <p>Please keep on this page until verification is complete.</p>
 
         <div className="mt-6 text-center border-t border-white/[0.06] pt-6">
           <p className="text-sm text-white/30">

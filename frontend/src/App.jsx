@@ -13,6 +13,8 @@ import PrivacyPolicy from './components/privacy';
 import Learnmore from './components/Learnmore';
 import Contact from './components/Contact';
 import Profile from './components/Profile';
+import Pricing from './components/Pricing';
+import PremiumBadge from './components/Premium/PremiumBadge';
 import './styles/App.css';
 
 const ProtectedRoute = ({ children }) => {
@@ -42,7 +44,7 @@ const PublicRoute = ({ children }) => {
 };
 
 const Dashboard = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, isPremium } = useAuth();
   const navigate = useNavigate();
   const [showCreateBlog, setShowCreateBlog] = useState(false);
   const [showAdminDashboard, setShowAdminDashboard] = useState(false);
@@ -62,6 +64,17 @@ const Dashboard = () => {
             </div>
 
             <div className="flex items-center space-x-3">
+              {isPremium ? (
+                <PremiumBadge size="md" />
+              ) : (
+                <button
+                  onClick={() => navigate('/premium')}
+                  className="bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/20 px-4 py-2 rounded-xl font-medium transition-all"
+                >
+                  Upgrade
+                </button>
+              )}
+
               <span className="hidden sm:inline-block px-3 py-1 text-xs font-medium bg-indigo-500/10 text-indigo-300 rounded-full border border-indigo-500/20">
                 {user.role}
               </span>
@@ -154,9 +167,10 @@ const AppContent = () => {
       <Route path="/register" element={<PublicRoute><Register onToggle={() => window.location.href = '/login'} /></PublicRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/blogs" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/premium" element={<Pricing />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route path="/contact" element={<Contact />} />
-      <Route path="/blog/:id" element={<ProtectedRoute><BlogDetail /></ProtectedRoute>} />
+      <Route path="/blog/:slug" element={<BlogDetail />} />
       <Route path="/learnmore" element={<Learnmore />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

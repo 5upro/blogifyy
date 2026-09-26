@@ -4,6 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Navbar from './Landing/Navbar';
 import Hero from './Landing/Hero';
 import Stats from './Landing/Stats';
+import LatestPosts from './Landing/LatestPosts';
 import Features from './Landing/Features';
 import HowItWorks from './Landing/HowItWorks';
 import Testimonials from './Landing/Testimonials';
@@ -119,6 +120,7 @@ const LandingPage = ({ onGetStarted }) => {
         onGetStarted={onGetStarted} 
       />
       <Stats />
+      <LatestPosts />
       <Features 
         ref={featuresRef} 
         cardsRef={featureCardsRef} 
