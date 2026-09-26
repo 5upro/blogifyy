@@ -155,7 +155,9 @@ const LatestPosts = () => {
                       <span className="text-[10px] font-bold uppercase tracking-wider text-white/30 truncate">
                         @{displayUsername(blog.author)}
                       </span>
-                      {blog.author?.plan === 'pro' && <PremiumBadge showLabel={false} />}
+                      {blog.author?.plan === 'pro' && blog.author?.premiumStatus === 'active' && (
+                        <PremiumBadge showLabel={false} />
+                      )}
                     </div>
 
                     <h3 className="text-lg font-semibold text-white/90 leading-snug mb-3 group-hover:text-indigo-300 transition-colors line-clamp-2">

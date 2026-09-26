@@ -44,7 +44,7 @@ const PublicRoute = ({ children }) => {
 };
 
 const Dashboard = () => {
-  const { user, logout, isPremium } = useAuth();
+  const { user, logout, isProSubscriber } = useAuth();
   const navigate = useNavigate();
   const [showCreateBlog, setShowCreateBlog] = useState(false);
   const [showAdminDashboard, setShowAdminDashboard] = useState(false);
@@ -64,7 +64,7 @@ const Dashboard = () => {
             </div>
 
             <div className="flex items-center space-x-3">
-              {isPremium ? (
+              {isProSubscriber ? (
                 <PremiumBadge size="md" />
               ) : (
                 <button

@@ -12,6 +12,18 @@ const isConfigured = () => {
     return Boolean(keyId && keySecret);
 };
 
+const isProduction = () => process.env.NODE_ENV === 'production';
+
+const isDemoMode = () => {
+    const requested = (process.env.RAZORPAY_DEMO_MODE || '').trim().toLowerCase() === 'true';
+    if (!requested) return false;
+    if (isProduction()) {
+        console.error('RAZORPAY_DEMO_MODE is set but NODE_ENV is production. Demo mode stays off.');
+        return false;
+    }
+    return true;
+};
+
 const getPublicKeyId = () => getCredentials().keyId;
 
 const basicAuthHeader = () => {
@@ -20,6 +32,15 @@ const basicAuthHeader = () => {
 };
 
 const createOrder = async ({ amount, currency, receipt }) => {
+    if (isDemoMode()) {
+        return {
+            id: `order_demo_${crypto.randomBytes(10).toString('hex')}`,
+            amount,
+            currency,
+            demo: true
+        };
+    }
+
     if (!isConfigured()) {
         const error = new Error('Razorpay is not configured on the server.');
         error.code = 'PAYMENT_NOT_CONFIGURED';
@@ -56,6 +77,8 @@ const createOrder = async ({ amount, currency, receipt }) => {
 };
 
 const verifyPaymentSignature = ({ orderId, paymentId, signature }) => {
+    if (isDemoMode()) return true;
+
     const { keySecret } = getCredentials();
     if (!keySecret) return false;
 
@@ -72,4 +95,4 @@ const verifyPaymentSignature = ({ orderId, paymentId, signature }) => {
     return crypto.timingSafeEqual(expectedBuffer, receivedBuffer);
 };
 
-module.exports = { isConfigured, getPublicKeyId, createOrder, verifyPaymentSignature };
+module.exports = { isConfigured, isDemoMode, getPublicKeyId, createOrder, verifyPaymentSignature };

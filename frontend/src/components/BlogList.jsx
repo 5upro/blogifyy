@@ -203,7 +203,9 @@ const BlogList = () => {
                               className="w-3.5 h-3.5 object-contain"
                             />
                           )}
-                          {blog.author?.plan === 'pro' && <PremiumBadge showLabel={false} />}
+                          {(blog.author?.plan === 'pro' && blog.author?.premiumStatus === 'active') && (
+                            <PremiumBadge showLabel={false} />
+                          )}
                         </span>
                       </button>
                     </div>

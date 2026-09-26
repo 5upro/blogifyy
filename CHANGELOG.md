@@ -49,6 +49,20 @@ The premium tier, post privacy, view analytics, and a rebuilt public reading exp
 - A short cooldown prevents that resend from being used to flood an inbox
 - The sign-in page detects an unverified account and offers the code entry form, so a missed code no longer dead-ends the flow
 
+**Razorpay without live keys**
+- A demo mode flag simulates the payment step so the whole upgrade flow can be exercised before a key secret exists. The server ignores the flag when running in production, so it cannot be enabled on a live deployment
+- The checkout modal reports whether Razorpay's script actually loaded, which distinguishes a code fault from a blocked network or extension
+- A development-only button opens Razorpay's real checkout sheet for previewing the payment UI. It grants nothing and cannot appear in a production build
+
+**Subscription status is now separate from entitlements**
+- Cancelling a subscription no longer makes the account advertise itself as an active Pro subscriber
+- A cancelled subscriber keeps every paid feature until the period they paid for ends, but the Pro badge and the active-plan banner are withdrawn immediately
+- Previously one flag drove both, so a cancelled user was still badged as Pro
+
+**Cancellation feedback**
+- The pricing page now reflects a cancelled subscription instead of continuing to show an active plan
+- Cancelling an already cancelled subscription says so plainly rather than repeating the same message
+
 **Developer tooling**
 - Script to backfill metadata onto posts created before slugs and visibility existed
 - Script to grant or revoke role, plan, accent, verification, and affiliation for a test account
@@ -64,6 +78,8 @@ The premium tier, post privacy, view analytics, and a rebuilt public reading exp
 ### Fixed
 - Posts created before the visibility field existed were missing from the public archive, because a query filtered on a value the stored documents did not have
 - The captcha widget was configured with a misspelled prop, so the deployed site silently ran on a fallback key
+- Cancelling a subscription appeared to do nothing, because the page only checked whether the account was Pro and ignored the cancelled status
+- The Razorpay preview sheet closed immediately with an error, caused by passing an order id that does not exist on Razorpay's servers
 - The privacy policy predated subscriptions, payments, view counts, and the affiliated badge, and has been brought up to date
 - A stray unstyled line on the registration page was removed
 
@@ -71,3 +87,5 @@ The premium tier, post privacy, view analytics, and a rebuilt public reading exp
 - View counting is deliberately naive. It counts requests, so it will overcount if a reader refreshes. A more honest counter needs deduplication, which was not worth the complexity at this stage.
 - Both accounts in the development database are administrators, which is why an admin can open any post including private ones. This is intentional and matches the existing moderation tools.
 - A private post is not listed anywhere for its author. If that becomes a problem, the next step is a page listing your own posts, including private and draft ones.
+- Real payments still need a Razorpay key secret. The key id alone cannot create an order, so demo mode covers local testing and a secret covers production.
+- Restarting Pro from a cancelled subscription is not wired up. The pricing page shows the button, but a cancelled subscriber with unexpired Pro is correctly refused a new purchase.

@@ -26,6 +26,9 @@ export const AuthProvider = ({ children }) => {
   const [subscription, setSubscription] = useState(null);
 
   const isPremium = user?.plan === 'pro';
+  const isProSubscriber = Boolean(
+    user?.isProSubscriber ?? (user?.plan === 'pro' && user?.premiumStatus === 'active')
+  );
   const entitlements = user?.entitlements || FREE_ENTITLEMENTS;
 
   useEffect(() => {
@@ -123,6 +126,7 @@ export const AuthProvider = ({ children }) => {
     updateCurrentUser,
     loading,
     isPremium,
+    isProSubscriber,
     entitlements,
     subscription,
     refreshSubscription

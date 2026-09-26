@@ -139,7 +139,8 @@ router.post(
           name: `${plan.name} (${plan.billing})`,
           durationDays: plan.durationDays
         },
-        keyId: razorpay.getPublicKeyId()
+        keyId: razorpay.getPublicKeyId(),
+        demo: Boolean(order.demo)
       });
     } catch (error) {
       console.error('Create order error:', error.message);
@@ -224,28 +225,35 @@ router.post(
 );
 
 router.post('/cancel', auth, async (req, res) => {
-  try {
-    if (!hasActivePremium(req.user)) {
-      return res.status(400).json({ message: 'No active Pro subscription to cancel' });
+    try {
+        if (!hasActivePremium(req.user)) {
+            return res.status(400).json({ message: 'No active Pro subscription to cancel' });
+        }
+
+        if (req.user.premiumStatus === 'cancelled') {
+            return res.json({
+                message: 'This subscription is already cancelled. Pro stays active until the current period ends.',
+                subscription: serializeSubscription(req.user)
+            });
+        }
+
+        req.user.premiumStatus = 'cancelled';
+        await req.user.save();
+
+        sendPremiumCancelledEmail({
+            toEmail: req.user.email,
+            name: req.user.name,
+            expiresAt: req.user.premiumExpiresAt
+        }).catch((error) => console.error('Failed to send cancellation email:', error));
+
+        res.json({
+            message: 'Subscription cancelled. Pro stays active until the current period ends.',
+            subscription: serializeSubscription(req.user)
+        });
+    } catch (error) {
+        console.error('Cancel subscription error:', error);
+        res.status(500).json({ message: 'Server error' });
     }
-
-    req.user.premiumStatus = 'cancelled';
-    await req.user.save();
-
-    sendPremiumCancelledEmail({
-      toEmail: req.user.email,
-      name: req.user.name,
-      expiresAt: req.user.premiumExpiresAt
-    }).catch((error) => console.error('Failed to send cancellation email:', error));
-
-    res.json({
-      message: 'Subscription cancelled. Pro stays active until the current period ends.',
-      subscription: serializeSubscription(req.user)
-    });
-  } catch (error) {
-    console.error('Cancel subscription error:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
 });
 
 module.exports = router;

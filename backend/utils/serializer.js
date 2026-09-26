@@ -1,4 +1,4 @@
-const { hasActivePremium, resolveAccent, entitlementsFor } = require('./premium');
+const { hasActivePremium, isProSubscriber, resolveAccent, entitlementsFor } = require('./premium');
 
 const sanitizeSocialHandles = (socialHandles = {}) => ({
   twitter: String(socialHandles.twitter || '').trim(),
@@ -21,6 +21,7 @@ const serializeUser = (user) => {
     isAffiliated: Boolean(user.isAffiliated),
     plan: isPro ? 'pro' : 'free',
     premiumStatus: user.premiumStatus || 'none',
+    isProSubscriber: isProSubscriber(user),
     premiumExpiresAt: user.premiumExpiresAt || null,
     accent: resolveAccent(user.theme?.accent),
     entitlements: entitlementsFor(user),

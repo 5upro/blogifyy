@@ -8,8 +8,8 @@ const { FREE_BLOG_LIMIT, hasActivePremium } = require('../utils/premium');
 const { createUniqueSlug } = require('../utils/slug');
 const router = express.Router();
 
-const PUBLIC_AUTHOR_FIELDS = 'name username profilePicture bio socialHandles role plan theme isAffiliated';
-const PRIVATE_AUTHOR_FIELDS = 'name username profilePicture bio socialHandles email role plan theme isAffiliated';
+const PUBLIC_AUTHOR_FIELDS = 'name username profilePicture bio socialHandles role plan premiumStatus theme isAffiliated';
+const PRIVATE_AUTHOR_FIELDS = 'name username profilePicture bio socialHandles email role plan premiumStatus theme isAffiliated';
 const LIST_FIELDS = 'title slug content author tags published visibility imageUrl createdAt updatedAt';
 const SINGLE_FIELDS = `${LIST_FIELDS} excerpt`;
 

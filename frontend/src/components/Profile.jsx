@@ -27,7 +27,7 @@ const getEmptyProfile = (fallbackEmail = '') => ({
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { user, updateCurrentUser, entitlements, isPremium, refreshSubscription } = useAuth();
+  const { user, updateCurrentUser, entitlements, isPremium, isProSubscriber, refreshSubscription } = useAuth();
   const [profile, setProfile] = useState(getEmptyProfile(user?.email || ''));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -168,7 +168,7 @@ const Profile = () => {
               <p className="text-xs text-white/50 mt-1">Complete your public writer profile</p>
             </div>
             <div className="flex items-center gap-3">
-              {isPremium ? (
+              {isProSubscriber ? (
                 <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest bg-amber-500/10 text-amber-300 border border-amber-500/20 rounded-lg">
                   <Crown size={12} /> Pro
                 </span>

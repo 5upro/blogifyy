@@ -419,7 +419,9 @@ const BlogDetail = () => {
                         className="w-4 h-4 object-contain"
                       />
                     )}
-                    {blog.author?.plan === 'pro' && <PremiumBadge showLabel={false} />}
+                    {(blog.author?.plan === 'pro' && blog.author?.premiumStatus === 'active') && (
+                      <PremiumBadge showLabel={false} />
+                    )}
                   </p>
                   <p className="text-xs text-white/30">{blog.author?.name || 'Anonymous'}</p>
                 </div>

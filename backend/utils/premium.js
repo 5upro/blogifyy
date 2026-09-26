@@ -71,11 +71,21 @@ const isPaidPlan = (planKey) => Object.prototype.hasOwnProperty.call(PAID_PLANS,
 
 const resolveAccent = (accent) => (isValidAccent(accent) ? accent : DEFAULT_ACCENT);
 
+const isExpired = (user) => {
+    if (!user.premiumExpiresAt) return false;
+    return new Date(user.premiumExpiresAt).getTime() <= Date.now();
+};
+
 const hasActivePremium = (user) => {
     if (!user || user.plan !== 'pro') return false;
     if (user.premiumStatus !== 'active' && user.premiumStatus !== 'cancelled') return false;
-    if (!user.premiumExpiresAt) return true;
-    return new Date(user.premiumExpiresAt).getTime() > Date.now();
+    return !isExpired(user);
+};
+
+const isProSubscriber = (user) => {
+    if (!user || user.plan !== 'pro') return false;
+    if (user.premiumStatus !== 'active') return false;
+    return !isExpired(user);
 };
 
 const entitlementsFor = (user) => (hasActivePremium(user) ? PLAN_FEATURE_MATRIX.pro : PLAN_FEATURE_MATRIX.free);
@@ -92,6 +102,8 @@ module.exports = {
     isValidAccent,
     isPaidPlan,
     resolveAccent,
+    isExpired,
     hasActivePremium,
+    isProSubscriber,
     entitlementsFor
 };

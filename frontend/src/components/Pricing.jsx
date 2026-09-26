@@ -11,12 +11,14 @@ import PremiumBadge from './Premium/PremiumBadge';
 export default function Pricing() {
   const navigate = useNavigate();
   const { user, isPremium, refreshSubscription } = useAuth();
+  const isCancelled = Boolean(isPremium) && user?.premiumStatus === 'cancelled';
   const [plans, setPlans] = useState(FALLBACK_PLANS);
   const [accents, setAccents] = useState(ACCENTS);
   const [loading, setLoading] = useState(true);
   const [checkoutPlan, setCheckoutPlan] = useState(null);
   const [error, setError] = useState('');
   const [cancelBusy, setCancelBusy] = useState(false);
+  const [notice, setNotice] = useState('');
 
   useEffect(() => {
     const loadPlans = async () => {
@@ -36,7 +38,8 @@ export default function Pricing() {
     };
 
     loadPlans();
-  }, []);
+    refreshSubscription();
+  }, [refreshSubscription]);
 
   const handleSelect = (plan) => {
     if (!user) {
@@ -56,10 +59,12 @@ export default function Pricing() {
 
     setCancelBusy(true);
     setError('');
+    setNotice('');
 
     try {
-      await premiumAPI.cancelSubscription();
+      const response = await premiumAPI.cancelSubscription();
       await refreshSubscription();
+      setNotice(response.data.message);
     } catch (err) {
       setError(err.response?.data?.message || 'Unable to cancel the subscription.');
     } finally {
@@ -109,25 +114,50 @@ export default function Pricing() {
         </div>
 
         {isPremium && (
-          <div className="max-w-2xl mx-auto mb-10 p-5 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div
+            className={`max-w-2xl mx-auto mb-10 p-5 border rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+              isCancelled
+                ? 'bg-amber-500/10 border-amber-500/20'
+                : 'bg-emerald-500/10 border-emerald-500/20'
+            }`}
+          >
             <div className="flex items-center gap-3">
               <PremiumBadge size="md" />
               <div>
-                <p className="text-sm font-semibold text-emerald-200">Your Pro plan is active</p>
-                <p className="text-xs text-emerald-200/60 mt-0.5">
-                  {user?.premiumExpiresAt
-                    ? `Renews on ${formatExpiry(user.premiumExpiresAt)}`
-                    : 'Lifetime access to Pro features'}
+                <p className={`text-sm font-semibold ${isCancelled ? 'text-amber-200' : 'text-emerald-200'}`}>
+                  {isCancelled ? 'Subscription cancelled' : 'Your Pro plan is active'}
+                </p>
+                <p className={`text-xs mt-0.5 ${isCancelled ? 'text-amber-200/60' : 'text-emerald-200/60'}`}>
+                  {isCancelled
+                    ? `You keep every Pro feature until ${formatExpiry(user?.premiumExpiresAt) || 'the end of the period'}, then the account returns to Free.`
+                    : user?.premiumExpiresAt
+                      ? `Renews on ${formatExpiry(user.premiumExpiresAt)}`
+                      : 'Lifetime access to Pro features'}
                 </p>
               </div>
             </div>
-            <button
-              onClick={handleCancel}
-              disabled={cancelBusy}
-              className="px-4 py-2 rounded-xl bg-white/[0.06] border border-white/[0.08] text-white/70 hover:text-white text-sm font-medium transition-all disabled:opacity-50"
-            >
-              {cancelBusy ? 'Cancelling...' : 'Cancel plan'}
-            </button>
+            {isCancelled ? (
+              <button
+                onClick={() => navigate('/premium')}
+                className="px-4 py-2 rounded-xl bg-white/[0.06] border border-white/[0.08] text-white/70 hover:text-white text-sm font-medium transition-all"
+              >
+                Restart Pro
+              </button>
+            ) : (
+              <button
+                onClick={handleCancel}
+                disabled={cancelBusy}
+                className="px-4 py-2 rounded-xl bg-white/[0.06] border border-white/[0.08] text-white/70 hover:text-white text-sm font-medium transition-all disabled:opacity-50"
+              >
+                {cancelBusy ? 'Cancelling...' : 'Cancel plan'}
+              </button>
+            )}
+          </div>
+        )}
+
+        {notice && (
+          <div className="max-w-2xl mx-auto mb-10 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-sm text-emerald-300 text-center">
+            {notice}
           </div>
         )}
 
