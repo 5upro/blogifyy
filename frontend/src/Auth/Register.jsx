@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
+import { AlertCircle } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import VerifyOTP from './VerifyOTP';
-import ReCAPTCHA from 'react-google-recaptcha';
-import { RECAPTCHA_ENABLED, RECAPTCHA_SITE_KEY } from '../config/captcha';
+import Captcha from '../components/Captcha';
+import { RECAPTCHA_ENABLED } from '../config/captcha';
 
 const Register = ({ onToggle }) => {
   const { register } = useAuth();
@@ -13,6 +14,7 @@ const Register = ({ onToggle }) => {
   const [registeredEmail, setRegisteredEmail] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [recaptchaToken, setRecaptchaToken] = useState(null);
+  const [captchaBroken, setCaptchaBroken] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -23,7 +25,7 @@ const Register = ({ onToggle }) => {
     setLoading(true);
     setError('');
 
-    if (RECAPTCHA_ENABLED && !recaptchaToken) {
+    if (RECAPTCHA_ENABLED && !captchaBroken && !recaptchaToken) {
       setError('Please verify the reCAPTCHA');
       setLoading(false);
       return;
@@ -192,13 +194,19 @@ const Register = ({ onToggle }) => {
             </div>
           </div>
 
-          {RECAPTCHA_ENABLED && (
-            <div className="flex justify-center pt-2">
-              <ReCAPTCHA
-                siteKey={RECAPTCHA_SITE_KEY}
-                onChange={setRecaptchaToken}
-                theme="dark"
-              />
+          {RECAPTCHA_ENABLED && !captchaBroken && (
+            <Captcha
+              onToken={setRecaptchaToken}
+              onUnavailable={() => setCaptchaBroken(true)}
+            />
+          )}
+
+          {RECAPTCHA_ENABLED && captchaBroken && (
+            <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+              <span className="text-amber-200 text-sm font-medium flex-1">
+                Registration is temporarily unavailable because the security check could not load. Please try again later.
+              </span>
             </div>
           )}
 
