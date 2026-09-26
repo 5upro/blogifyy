@@ -4,6 +4,7 @@ import { useAuth } from './AuthContext';
 import VerifyOTP from './VerifyOTP';
 import Captcha from '../components/Captcha';
 import { RECAPTCHA_ENABLED } from '../config/captcha';
+import ReCAPTCHA from 'react-google-recaptcha';
 
 const Register = ({ onToggle }) => {
   const { register } = useAuth();
@@ -197,13 +198,13 @@ const Register = ({ onToggle }) => {
             </div>
           </div>
 
-          {RECAPTCHA_ENABLED && !captchaBroken && (
-            <Captcha
-              onToken={setRecaptchaToken}
-              onUnavailable={() => setCaptchaBroken(true)}
-              resetKey={captchaResetKey}
-            />
-          )}
+					<div className="flex justify-center pt-2">
+						<ReCAPTCHA
+							sitekey="6LdTasQtAAAAAFoRIksr0fnQWMc-isa5sDuF34j9"
+							onChange={setRecaptchaToken}
+							theme="dark"
+						/>
+					</div>
 
           {RECAPTCHA_ENABLED && captchaBroken && (
             <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-3">

@@ -33,14 +33,14 @@ const Captcha = ({ onToken, onUnavailable, resetKey = 0 }) => {
     if (onToken) onToken(null);
   }, [resetKey, onToken]);
 
-  if (!RECAPTCHA_ENABLED) return null;
+  // if (!RECAPTCHA_ENABLED) return null;
 
   return (
     <CaptchaBoundary onUnavailable={onUnavailable}>
       <div className="flex justify-center pt-2">
         <ReCAPTCHA
           ref={captchaRef}
-          siteKey={RECAPTCHA_SITE_KEY}
+          siteKey="6LdTasQtAAAAAFoRIksr0fnQWMc-isa5sDuF34j9"
           onChange={onToken}
           onErrored={() => onUnavailable && onUnavailable()}
           theme="dark"
