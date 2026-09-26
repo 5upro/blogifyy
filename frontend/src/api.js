@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const resolveApiBaseUrl = () => {
   const configured = (import.meta.env.VITE_API_BASE_URI || '').trim();
-  const base = configured || 'https://blogifyy-hugk.onrender.com';
+  const base = configured || 'https://blogifyy-yuqc.onrender.com';
   return `${base.replace(/\/+$/, '')}/api/`;
 };
 
