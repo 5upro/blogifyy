@@ -14,6 +14,7 @@ const Register = ({ onToggle }) => {
   const [registeredEmail, setRegisteredEmail] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [recaptchaToken, setRecaptchaToken] = useState(null);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
   const [captchaBroken, setCaptchaBroken] = useState(false);
 
   const handleChange = (e) => {
@@ -30,6 +31,8 @@ const Register = ({ onToggle }) => {
       setLoading(false);
       return;
     }
+
+    setCaptchaResetKey((key) => key + 1);
 
     const result = await register(formData);
     if (!result.success) {
@@ -198,6 +201,7 @@ const Register = ({ onToggle }) => {
             <Captcha
               onToken={setRecaptchaToken}
               onUnavailable={() => setCaptchaBroken(true)}
+              resetKey={captchaResetKey}
             />
           )}
 

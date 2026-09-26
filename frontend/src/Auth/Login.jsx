@@ -13,6 +13,7 @@ const Login = ({ onToggle, onForgotPassword }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [recaptchaToken, setRecaptchaToken] = useState(null);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
   const [captchaBroken, setCaptchaBroken] = useState(false);
   const [otpEmail, setOtpEmail] = useState('');
 
@@ -30,6 +31,8 @@ const Login = ({ onToggle, onForgotPassword }) => {
       setLoading(false);
       return;
     }
+
+    setCaptchaResetKey((key) => key + 1);
 
     const result = await login(formData);
     if (!result.success) {
@@ -162,6 +165,7 @@ const Login = ({ onToggle, onForgotPassword }) => {
             <Captcha
               onToken={setRecaptchaToken}
               onUnavailable={() => setCaptchaBroken(true)}
+              resetKey={captchaResetKey}
             />
           )}
 
